@@ -98,7 +98,7 @@ class PlayLayer:
         self.file_path = file_path
         self.start = -1
         self.benchmark_time = -1
-        self.progress_increment = 0
+        self.enable_benchmark = False
         self.audio_frame = -1
         self.isRun = False
         self.isPause = False
@@ -122,9 +122,9 @@ class PlayLayer:
         self.duration_frame = sound.frame_count()
 
     def thread_play(self):
-        start = time.time()  # 启动播放流
-        # self.audio_frame = 0
-        print(f"{(time.time() - start) * 1000}ms")
+        if self.enable_benchmark:
+            self.audio_frame += math.floor((time.time() - self.benchmark_time) / self.audio_frame_step)
+            self.enable_benchmark = False
         while self.audio_frame < self.duration_frame and self.isRun:  # 循环，直到时间大于结束
             self.stream.write(self.source_array[self.audio_frame].tostring())
             self.audio_frame += 1
@@ -138,6 +138,18 @@ class PlayLayer:
 
     def set_position(self, seconds: float):
         self.audio_frame = math.floor(seconds / self.audio_frame_step)
+
+    def set_position_with_benchmark(self, seconds: float):
+        """
+        警告，调用此方法后必须立刻启动播放器，不然此方法不仅没有实际意义还将会导致下一次播放失败
+        Warning, the player must be started immediately after calling this method,
+         otherwise this method will not only have no practical meaning, but will also cause the next playback to fail
+        :param seconds:
+        :return:
+        """
+        self.enable_benchmark = True
+        self.benchmark_time = time.time()
+        self.set_position(seconds)
 
     def get_position(self):
         return self.audio_frame * self.audio_frame_step
