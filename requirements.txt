@@ -1,0 +1,9 @@
+python_vlc==3.0.12118
+loguru==0.5.1
+numpy==1.19.0
+Flask==1.1.2
+Flask_SocketIO==5.1.1
+gevent_socketio==0.3.6
+
+pytube~=11.0.1
+wget~=3.2

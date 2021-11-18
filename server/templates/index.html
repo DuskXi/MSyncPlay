@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<button id="load">load</button>
+<button id="play">play</button>
+<button id="pause">pause</button>
+<input id="url" type="text"/>pause
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+        integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    var socket = io();
+    socket.on('connect', function () {
+        $("#play").click(function () {
+            socket.emit('JMessage', {
+                type: 'command',
+                command: 'play'
+            });
+        })
+        $("#load").click(function () {
+            socket.emit('JMessage', {
+                type: 'command',
+                command: 'load',
+                url: $("#url").val()
+            });
+        })
+        $("#pause").click(function () {
+            socket.emit('JMessage', {
+                type: 'command',
+                command: 'pause'
+            });
+        })
+    });
+
+</script>
+</html>

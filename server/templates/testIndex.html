@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css"
+          integrity="sha512-YWzhKL2whUzgiheMoBFwW8CKV4qpHQAEuvilg9FAn5VJUDwKZZxkJNuGM4XkWuk94WCrrwslk8yWNGmY1EduTA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <title>Hello, world!</title>
+
+    <style>
+
+    </style>
+</head>
+<body>
+<div id="app">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Navbar</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Dropdown
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="#">Action</a></li>
+                            <li><a class="dropdown-item" href="#">Another action</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#">Something else here</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled">Disabled</a>
+                    </li>
+                </ul>
+                <form class="d-flex">
+                    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row justify-content-md-center" style="margin-top: 20px">
+            <div class="col col-lg-4">
+                Device
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Benchmark Device</span>
+                    <select v-model="benchmark_device" @change="onBenchmarkDeviceChanged()"
+                            class="form-select form-control" aria-label="list">
+                        <option v-for="device in devices" :value="device.uuid">{{device.name}}</option>
+                    </select>
+                </div>
+
+                <div class="list-group">
+                    <a href="#"
+                       class="list-group-item list-group-item-action d-flex gap-3 py-3"
+                       aria-current="true"
+                       v-for="device in devices"
+                       @click="device.enabled = !device.enabled;onDevicesChange(device.uuid)"
+                       :class="device.css">
+                        <input class="form-check-input flex-shrink-0" type="checkbox"
+                               @change="onDevicesChange(device.uuid)"
+                               v-model="device.enabled" checked>
+                        <i :class="device.icon"></i>
+                        <div class="d-flex gap-2 w-100 justify-content-between">
+                            <div>
+                                <h6 class="mb-0">{{device.name}}</h6>
+                                <p class="mb-0 opacity-75">System: {{device.system}}</p>
+                                <p class="mb-0 opacity-75">Python: {{device.pythonVersion}}</p>
+                                <p class="mb-0 opacity-75">Time Difference: {{(device.difference * 1000).toFixed(1)}}
+                                    ms </p>
+                                <p class="mb-0 opacity-75">Delay: {{(device.delay * 1000).toFixed(1)}} ms </p>
+                            </div>
+                            <small class="opacity-50 text-nowrap">{{new Date(device.updateTime *
+                                1000).toLocaleTimeString()}}</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="col col-lg-8">
+                Music
+                <!--                <input type="range" class="form-range" id="customRange1">-->
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Play List</span>
+                    <select v-model="list_active" class="form-select form-control" aria-label="list">
+                        <option v-for="playlist in playlists" :value="playlist">{{playlist}}</option>
+                    </select>
+                </div>
+                <div class="row align-items-center align-self-center">
+                    <div class="col col-lg-1">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn" type="button" @click="onPlayButtonClick">
+                                <i :class="playStatusClass"></i>
+                            </button>
+                            <button class="btn" type="button" @click="onRedressButtonClick">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col col-lg-10"></div>
+                    <div class="col col-lg-1">
+
+                    </div>
+                </div>
+
+                <input type="range" class="form-range" :value="playback_progress"
+                       @input="onRangeValueChanged($event.target)">
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action d-flex gap-3 py-3" aria-current="true"
+
+                       v-for="music in musics" @click="changeMusic(music.id,music.playing)" :id="'music_' + music.id">
+                        <!--:class="musicBackground(music.playing)"-->
+                        <div class="d-flex gap-2 w-100 justify-content-between">
+                            <div>
+                                <h6 class="mb-0">{{music.name}}</h6>
+                                <p class="mb-0 opacity-75">发布者: {{music.singer}}</p>
+                            </div>
+                            <small class="opacity-50 text-nowrap">{{secondsToTimeString(music.timeLong)}}</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Optional JavaScript; choose one of the two! -->
+
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+        crossorigin="anonymous"></script>
+
+</body>
+<script>
+    var socket = io('ws://192.248.168.119:5000'); //192.248.168.119
+    const Counter = {
+        data() {
+            return {
+                message: 'Hello, world!',
+                benchmark_device: "",
+                devices: [
+                    {
+                        name: 'RTX-3090',
+                        system: "Windows",
+                        pythonVersion: "3.7.7",
+                        icon: "bi bi-windows",
+                        uuid: "03000200-0400-0500-0006-000700080009",
+                        enabled: true,
+                        updateTime: 1636928808.7675912,
+                        difference: 0
+                    },
+                    {
+                        name: 'LeizideMac',
+                        system: "MacOS/Darwin",
+                        pythonVersion: "3.9.0",
+                        uuid: "03000200-0400-0500-0006-000700080009",
+                        icon: "bi bi-apple",
+                        enabled: true,
+                        updateTime: 1636928808.7675912,
+                        difference: 0
+                    },
+                    {
+                        name: "testLinux",
+                        system: "CentOS 8",
+                        pythonVersion: "3.7.0",
+                        uuid: "03000200-0400-0500-0006-000700080009",
+                        icon: "fab fa-linux",
+                        enabled: true,
+                        updateTime: 1636928808.7675912,
+                        difference: 0
+                    }
+                ],
+                musics: [{
+                    "id": 1,
+                    "name": "【三無 × 祖婭納惜】白日妄想 【原創歌曲】",
+                    "singer": "三無Marblue【Official】",
+                    "timeLong": "",
+                    playing: true
+                }, {
+                    "id": 2,
+                    "name": "【祖娅纳惜】西行【忘川风华录】",
+                    "singer": "我是人",
+                    "timeLong": "",
+                    playing: false
+                }],
+                socket: socket,
+                uploadMode: false,
+                playStatus: false,
+                playStatusClass: "bi bi-play-fill",
+                list_active: "list1",
+                playlists: [
+                    "list1"
+                ],
+                playback_progress: 0
+            }
+        },
+        methods: {
+            onDevicesChange(uuid) {
+                this.uploadMode = false;
+                let chosen = []
+                this.devices.forEach(element => {
+                    chosen.push({uuid: element.uuid, enabled: element.enabled})
+                })
+                this.socket.emit("web", {Type: "ChangeInformation", data: chosen})
+                this.uploadMode = true;
+            },
+            changeMusic(id, isPlaying) {
+                if (!isPlaying)
+                    this.socket.emit("web", {Type: "Play", id: id})
+                else
+                    this.socket.emit("web", {Type: "Play"})
+            },
+            musicBackground(condition) {
+                if (condition)
+                    return "bg-success bg-opacity-25"
+            },
+            onBenchmarkDeviceChanged() {
+                this.uploadMode = false;
+                this.socket.emit("web", {Type: "BenchmarkDevice", uuid: this.benchmark_device})
+                this.devices.forEach(element => {
+                    element.css = ""
+                    if (element.uuid == this.benchmark_device)
+                        element.css = "bg-success bg-opacity-25"
+                })
+                this.uploadMode = true;
+            },
+            onPlayButtonClick() {
+                this.socket.emit("web", {Type: "Play"})
+            },
+            onRedressButtonClick() {
+                this.socket.emit("web", {Type: "Redress"})
+            },
+            onRangeValueChanged(event) {
+                this.playback_progress = event.value;
+                // console.log(this.playback_progress)
+                // this.drawBackground(event, "blue", event.value / 100)
+            },
+            serverMsg(data) {
+                //console.log(data)
+                if (data.Type == "InformationUpdate") {
+                    if (data.devices != null) {
+                        this.devices = data.devices
+                        let hasBenchmark = false
+                        this.devices.forEach(element => {
+                            if (element.benchmark_device) {
+                                this.benchmark_device = element.uuid
+                                element.css = "bg-success bg-opacity-25"
+                                hasBenchmark = true
+                            }
+                        })
+                        if (!hasBenchmark)
+                            this.benchmark_device = ""
+                    }
+                    if (data.musics != null)
+                        this.musics = data.musics
+                    if (data.progress != null)
+                        this.draw_playback_progress(data.progress)
+                    if (data.playlists != null)
+                        this.playlists = data.playlists
+                    if (data.list_active != null)
+                        this.list_active = data.list_active
+                    if (data.play_status != null)
+                        if (data.play_status) {
+                            this.playStatus = true;
+                            this.playStatusClass = "bi bi-pause"
+                        } else {
+                            this.playStatus = true;
+                            this.playStatusClass = "bi bi-play-fill"
+                        }
+                }
+            },
+            draw_playback_progress(data) {
+                let music_id = data["id"]
+                let percentage = data["percentage"]
+                this.musics.forEach(element => {
+                    if (element.id == music_id) {
+                        this.drawBackground(
+                            document.getElementById("music_" + music_id),
+                            "#1987543A",
+                            percentage
+                        )
+                    } else {
+                        $(document.getElementById("music_" + element.id)).css("background-image", "")
+                    }
+                });
+            },
+            drawBackground(element, color, percentage) {
+                width = element.offsetWidth
+                height = element.offsetHeight
+                let canvas = document.createElement("canvas")
+                canvas.width = width
+                canvas.height = height
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = color; // 198754
+                ctx.fillRect(0, 0, width * percentage, height);
+                $(element).css("background-image", "url('" + canvas.toDataURL("image/png") + "')");
+            },
+            secondsToTimeString(timestamp) {
+                let minutes = Math.floor(timestamp / 60)
+                let seconds = Math.round(timestamp % 60)
+                if (seconds < 10)
+                    seconds = "0" + seconds
+                return minutes + ":" + seconds
+            },
+
+        },
+        created() {
+            this.socket.emit("web", {})
+            setInterval(function () {
+                if (!this.uploadMode)
+                    this.socket.emit("web", {Type: "RequestInformationUpdate"})
+            }, 500);
+            this.socket.on('web', this.serverMsg);
+        }
+    }
+
+    Vue.createApp(Counter).mount('#app')
+</script>
+</html>

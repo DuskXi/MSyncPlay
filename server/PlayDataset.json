@@ -1,0 +1,39 @@
+{
+    "current_playlist": "testList", 
+    "current_song": 0, 
+    "music_list": [
+        {
+            "name": "testList", 
+            "songs": [
+                {
+                    "id": 0, 
+                    "url": "https://www.youtube.com/watch?v=bcpgQOuKuMY&list=RDMMfNuXZ17utvE&index=31"
+                }, 
+                {
+                    "id": 1, 
+                    "url": "https://www.youtube.com/watch?v=JhewXi1UeqQ&list=RDMMfNuXZ17utvE&index=36"
+                }, 
+                {
+                    "id": 2, 
+                    "url": "https://www.youtube.com/watch?v=geDZemADZV8&list=RDMMfNuXZ17utvE&index=32"
+                }, 
+                {
+                    "id": 3, 
+                    "url": "https://www.youtube.com/watch?v=v6RJbQNhrtc&list=RDMMfNuXZ17utvE&index=30"
+                }, 
+                {
+                    "id": 4, 
+                    "url": "https://www.youtube.com/watch?v=s6LGU89X1QI&list=RDMMvFqRyP_uJ1I&index=20"
+                }, 
+                {
+                    "id": 5, 
+                    "url": "https://www.youtube.com/watch?v=m-UhtKnaLQU"
+                }, 
+                {
+                    "id": 6, 
+                    "url": "https://www.youtube.com/watch?v=fNuXZ17utvE&list=RDMMvFqRyP_uJ1I&index=30"
+                }
+            ]
+        }
+    ]
+}
