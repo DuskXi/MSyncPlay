@@ -1,5 +1,23 @@
 # 我tm要记录下这段该死的魔法
 
+---
+
+rnm !
+
+---
+
+一开始，基准时间设备不参与矫正，其余设备以基准设备为准矫正时间
+
+### 发生情况如下：
+
+1. 其余设备在矫正的时候比对理应的时间有大概100ms的时间差，这不是推导出来的，代码看上去应该是0时间差，这是被统计出来的，统计的数据集的样本标准差为0.01
+2. 当矫正设备参与矫正的时候，对比理应时间差为1ms时间差，同样是统计结果，数据集样本标准差为0.01
+3. 全部一起进行矫正的时候，莫名其妙没有差距了，耳朵听出来的感觉也和同时播放无异
+
+---
+
+# RNM 魔法！
+
 ```python
     def upload_Position(self):
         self.sio.emit("Information", {"Identity": self.identity,
@@ -29,5 +47,10 @@
         #             f"现有差: {int(position + ((self.get_server_timestamp() - timestamp) * 1000)) - self.audio.get_position()}")
         # self.audio.set_position(int(position + (self.get_server_timestamp() - timestamp)))
 ```
+## Device 1 Windows log:
 
 ![url](magic.png)
+
+## Device 2 Mac log:
+
+![url](magic2.png)
