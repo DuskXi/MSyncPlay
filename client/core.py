@@ -80,7 +80,7 @@ class Core:
         self.audio.playerLayer.stop()
         self.audio.playerLayer.reset()
         self.audio.playerLayer.set_position_with_benchmark(
-            position + (-0.1) + time.time() - (timestamp - self.difference))
+            position + time.time() - (timestamp - self.difference))
         self.audio.playerLayer.play()
         # logger.info(f"矫正完毕, 时间设为:{int(position + ((self.get_server_timestamp() - timestamp) * 1000))}"
         #             f"时间增量: {((self.get_server_timestamp() - timestamp) * 1000)}, "
@@ -88,7 +88,7 @@ class Core:
         # self.audio.set_position(int(position + (self.get_server_timestamp() - timestamp)))
 
     def get_server_timestamp(self):
-        return time.time() - self.difference
+        return time.time() + self.difference
 
     def convert_server_timestamp_to_local(self, timestamp):
         return timestamp + self.difference
@@ -96,9 +96,9 @@ class Core:
     #@sio.on("Command")
     def command(self, data):
         identity = data["Identity"]
-        # if "Except" in data.keys():
-        #     if data["Except"] == self.identity:
-        #         return
+        if "Except" in data.keys():
+            if data["Except"] == self.identity:
+                return
         if identity == self.identity or identity == "Broadcast":
             # 加载音乐
             if data["Command"] == "Load":
