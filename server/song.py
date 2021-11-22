@@ -135,7 +135,8 @@ class Song:
     @staticmethod
     def load_music(url):
         yt = YouTube(url)
-        list_audios = yt.streams.filter(only_audio=True)
+        streams = yt.streams
+        list_audios = streams.filter(only_audio=True)
         list_audios = sorted(list_audios, key=lambda x: int(re.search("^[0-9]+", x.abr)[0]), reverse=True)[0]
         return {
             "youtube": yt,

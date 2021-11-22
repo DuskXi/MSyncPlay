@@ -30,14 +30,15 @@ def file_read(filename, encoding='utf-8'):
 
 
 class Audio:
-    def __init__(self, url, video_id, cache_path=None):
+    def __init__(self, cache_path=None):
         self.cache_path = "cache" if cache_path is None else cache_path
-        self.playerLayer = None
-        self._load(url, video_id)
+        self.playerLayer: PlayLayer = PlayLayer("")
         self.isPlaying = False
 
-    def update(self, url, video_id):
-        self.playerLayer.stop()
+    def load(self, url, video_id):
+        if self.playerLayer.file_path is not "":
+            self.playerLayer.stop()
+        self.isPlaying = False
         self._load(url, video_id)
         return self
 
@@ -63,8 +64,7 @@ class Audio:
             parallelDownload.download(url, os.path.join(self.cache_path, f"{video_id}.m4a"))
             caches.append({"video_id": video_id, "extension_name": "m4a"})
         file_write(path_json, json.dumps(caches))
-        self.playerLayer = PlayLayer(os.path.join(self.cache_path, f"{video_id}.m4a"))
-        # self.playerLayer = PlayLayer(url)
+        self.playerLayer.load_source(os.path.join(self.cache_path, f"{video_id}.m4a"))
 
     @staticmethod
     def _download(url, name):
@@ -82,11 +82,6 @@ class Audio:
         self.isPlaying = False
 
     def set_position(self, seconds: float):
-        """
-
-        :param seconds:
-        :return:
-        """
         self.playerLayer.set_position(seconds)
 
     def get_position(self):
@@ -96,7 +91,6 @@ class Audio:
 class PlayLayer:
     def __init__(self, file_path):
         self.file_path = file_path
-        self.start = -1
         self.benchmark_time = -1
         self.enable_benchmark = False
         self.audio_frame = -1
@@ -105,6 +99,11 @@ class PlayLayer:
         self.thread = None
         self.source_array = None
         self.is_play_ended = False
+        self.audio_frame_step = (1 / 44100)
+
+    def load_source(self, file_path):
+        self.file_path = file_path
+        self.audio_frame = 0
         self._set_audio_source(self.file_path)
         self._init_player()
 
@@ -122,6 +121,7 @@ class PlayLayer:
         self.duration_frame = sound.frame_count()
 
     def thread_play(self):
+        logger.info(f"音频[{os.path.split(self.file_path)[-1]}]开始播放")
         if self.enable_benchmark:
             self.audio_frame += math.floor((time.time() - self.benchmark_time) / self.audio_frame_step)
             self.enable_benchmark = False
@@ -179,7 +179,8 @@ class PlayLayer:
 
     def stop(self):
         self.isRun = False
-        self.thread.join()
+        if self.thread is not None:
+            self.thread.join()
 
     def reset(self):
         if self.is_play_ended:

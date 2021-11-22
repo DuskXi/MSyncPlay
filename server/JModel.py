@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 
-type_list = [int, float, dict, list, type(None), str, tuple]
+type_list = [int, float, dict, list, type(None), str, tuple, bool]
 
 
 def to_dict(obj: object) -> dict:
@@ -13,6 +13,8 @@ def to_dict(obj: object) -> dict:
             continue
         if type(value) in type_list:
             results[variable_name] = obj.__dict__[variable_name]
+        elif type(type(value)) == type(Enum):
+            results[variable_name] = obj.__dict__[variable_name].value
         else:
             results[variable_name] = to_dict(value)
     return results
@@ -42,7 +44,7 @@ def to_object(json_dict: dict, _class: type) -> object:
     return results
 
 
-def update_object(json_dict: dict, obj: object) -> object:
+def update_object(json_dict: dict, obj: object) -> list:
     """
     更新对象
     更新对象中json_dict中有的值
@@ -51,9 +53,12 @@ def update_object(json_dict: dict, obj: object) -> object:
     :return:
     """
     global type_list
+    base_class_name = obj.__class__.__name__
+    list_changed = []
     for variable_name in obj.__dict__.keys():
         if variable_name not in json_dict.keys():
             continue
+        name_path = [f"{base_class_name}.{variable_name}"]
         value = obj.__dict__[variable_name]
         _type = value if type(value) is type else type(value)
         if _type in type_list or value in type_list:
@@ -61,9 +66,12 @@ def update_object(json_dict: dict, obj: object) -> object:
         elif _type == type(Enum):
             setattr(obj, variable_name, _type(json_dict[variable_name]))
         elif type(_type) == type(Enum):
-            setattr(obj, variable_name, type(_type)(json_dict[variable_name]))
+            setattr(obj, variable_name, _type(json_dict[variable_name]))
         else:
-            setattr(obj, variable_name, update_object(json_dict[variable_name], obj.__dict__[variable_name]))
+            name_path += [(f"{base_class_name}.{variable_name}."
+                           + result) for result in update_object(json_dict[variable_name], obj.__dict__[variable_name])]
+        list_changed += name_path
+    return list_changed
 
 
 class JObject:
@@ -87,8 +95,8 @@ class JObject:
     def __str__(self):
         return self.json()
 
-    def update(self, json_str: str):
-        update_object(json.loads(json_str), self)
+    def update(self, json_str: str) -> list:
+        return update_object(json.loads(json_str), self)
 
 
 class Example(JObject):
