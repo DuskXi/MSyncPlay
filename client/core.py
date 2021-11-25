@@ -1,3 +1,4 @@
+import asyncio
 import os
 import platform
 import re
@@ -6,10 +7,10 @@ import uuid
 
 import numpy as np
 import socketio
-from datamodel import *
 from loguru import logger
 
 from audio import Audio
+from datamodel import *
 
 
 class Core:
@@ -36,8 +37,6 @@ class Core:
         self.audio.load(url, youtube_id)
         logger.info(
             f"歌曲加载完毕, 耗时: {(time.time() - start_time) * 1000} ms [video_id]: {youtube_id}")
-        # self.sio.emit("StatusUpdate",
-        #               {"Identity": self.identity, "StatusType": "LoadingStatus", "LoadingStatus": True})
 
     def onPlayEnded(self):
         self.audio.isPlaying = False
@@ -94,6 +93,11 @@ class Core:
             self.redress_music(self.kernelInfo.benchmarkPlayingPosition, self.kernelInfo.benchmarkTimestamp)
         if command == Command.InformationCollection:
             self.updateInformation()
+        if command == Command.SetPosition:
+            self.audio.playerLayer.set_position_with_benchmark_customize(
+                self.kernelInfo.benchmarkPlayingPosition,
+                self.convert_server_timestamp_to_local(self.kernelInfo.benchmarkTimestamp))
+            logger.info(f"设置播放位置为: {self.kernelInfo.benchmarkPlayingPosition}")
 
         # 命令复位
         self.kernelInfo.command = Command.Null
@@ -113,13 +117,15 @@ class Core:
         # TODO(已完成): 补充功能
         # 这里不需要更新系统信息，只需要在程序初始化更新一次，毕竟这玩意是常量
         # -----------------------------------------------------------------------------
-        if self.audio.playerLayer.isRun:
+        if self.audio.playerLayer.isRun and not self.audio.playerLayer.is_play_ended:
             self.localInfo.playStatus = PlayStatus.Play
         elif self.audio.playerLayer.file_path != "":
-            if self.audio.playerLayer.audio_frame != 0:
-                self.localInfo.playStatus = PlayStatus.Pause
-            else:
+            if self.audio.playerLayer.audio_frame == 0:
                 self.localInfo.playStatus = PlayStatus.Load
+            elif self.audio.playerLayer.audio_frame >= self.audio.playerLayer.duration_frame:
+                self.localInfo.playStatus = PlayStatus.End
+            else:
+                self.localInfo.playStatus = PlayStatus.Pause
         else:
             self.localInfo.playStatus = PlayStatus.Unknown
         self.localInfo.delay = self.delay
@@ -129,6 +135,7 @@ class Core:
         else:
             self.localInfo.benchmarkPlayingPosition = 0
         self.localInfo.benchmarkTimestamp = self.get_server_timestamp()
+        self.localInfo.uuid = self.identity
         self.sio.emit("Information", {"Identity": self.identity, "JData": self.localInfo.json()})
 
     #@sio.on("Information")
@@ -228,6 +235,7 @@ class Core:
         self.identity = uuidStr
 
     def time_redress(self):
+        self.audio.loop = asyncio.get_event_loop()
         while self.isRun:
             self.list_delay = []
             self.list_difference = []

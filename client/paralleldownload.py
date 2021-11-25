@@ -3,6 +3,7 @@ import math
 import threading
 import time
 
+import progressbar
 import requests
 from numba import jit
 
@@ -14,10 +15,12 @@ class ParallelDownload:
         self.lastLengthBytesDownloaded = 0
         self.enablePrint = enablePrint
         self.fileSize = 0
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"}
 
     async def _threadDownload(self, url, chunkId, chunkStart, chunkEnd):
         headers = {"Range": f"bytes={chunkStart}-{chunkEnd}"}
-        response = requests.get(url, headers=headers, stream=True)
+        response = requests.get(url, headers={**headers, **self.headers}, stream=True)
         arrayBytes = b''
         for chunk in response.iter_content(chunk_size=1024):
             if chunk:
@@ -37,7 +40,7 @@ class ParallelDownload:
                 f.write(arrayBytes)
 
     def calculateChunkSize(self, fileSize):
-        minChunkSize = 1024 * 5  # 1KB
+        minChunkSize = 1024 * 1024  # 1KB
         stepIncreaseSize = 1024
         chunkSize = minChunkSize
         numChunks = math.ceil(fileSize / chunkSize)
@@ -65,19 +68,43 @@ class ParallelDownload:
         self.lastLengthBytesDownloaded = progress
 
     def _keepPrintProgress(self):
+        bar = progressbar.ProgressBar(
+            widgets=[
+                '进度: ',
+                progressbar.Percentage(),
+                ' ',
+                progressbar.Bar(),
+                ' ',
+                progressbar.FileTransferSpeed(),
+                ' | ',
+                progressbar.ETA()
+            ],
+            max_value=self.fileSize
+        )
+        bar.start()
         while True:
             if self.enablePrint:
-                self.printProgress(self.lengthBytesDownloaded, self.fileSize)
+                bar.update(self.lengthBytesDownloaded)
+                # self.printProgress(self.lengthBytesDownloaded, self.fileSize)
             if self.lengthBytesDownloaded >= self.fileSize:
                 break
             time.sleep(0.5)
+        bar.finish()
 
-    def download(self, url, fileName):
-        response = requests.head(url)
+    def download(self, url, fileName, loop=None):
+        response = requests.head(url, headers=self.headers, allow_redirects=True)
+        if 302 in [history.status_code for history in response.history]:
+            url = response.url
+            print(f"Redirect to {url}")
         fileSize = int(response.headers['Content-Length'])
         self.fileSize = fileSize
         numChunks, chunkSize, lastChunkSize = self.calculateChunkSize(fileSize)
-        loop = asyncio.get_event_loop()
+        print(f"开始下载：{fileName}, "
+              f"总大小：{self._lengthBytesToString(fileSize)}, "
+              f"分片大小：{self._lengthBytesToString(chunkSize)} "
+              f"分片数量：{numChunks}")
+        if loop is None:
+            loop = asyncio.get_event_loop()
         if self.enablePrint:
             thread = threading.Thread(target=self._keepPrintProgress)
             thread.start()
@@ -90,6 +117,10 @@ class ParallelDownload:
         fileSize = int(response.headers['Content-Length'])
         self.fileSize = fileSize
         numChunks, chunkSize, lastChunkSize = self.calculateChunkSize(fileSize)
+        print(f"开始下载：{fileName}, "
+              f"总大小：{self._lengthBytesToString(fileSize)}, "
+              f"分片大小：{self._lengthBytesToString(chunkSize)} "
+              f"分片数量：{numChunks}")
         if self.enablePrint:
             thread = threading.Thread(target=self._keepPrintProgress)
             thread.start()

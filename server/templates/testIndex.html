@@ -130,8 +130,9 @@
                     </div>
                 </div>
 
-                <input type="range" class="form-range" :value="playback_progress"
-                       @input="onRangeValueChanged($event.target)">
+                <input type="range" class="form-range" :value="playback_progress" min="0" :max="rangeMax"
+                       @input="onRangeValueChanged($event.target)"
+                       @mouseup="onRangeMouseUp" @mousedown="onRangeMouseDown">
                 <div class="list-group">
                     <a href="#" class="list-group-item list-group-item-action d-flex gap-3 py-3" aria-current="true"
 
@@ -159,7 +160,7 @@
 
 </body>
 <script>
-    var socket = io('ws://127.0.0.1:5000'); //192.248.168.119
+    var socket = io('ws://192.248.168.119:5000'); //192.248.168.119 'ws://127.0.0.1:5000'
     const Counter = {
         data() {
             return {
@@ -202,12 +203,14 @@
                     "name": "【三無 × 祖婭納惜】白日妄想 【原創歌曲】",
                     "singer": "三無Marblue【Official】",
                     "timeLong": "",
+                    "maxTimeLong": "",
                     playing: true
                 }, {
                     "id": 2,
                     "name": "【祖娅纳惜】西行【忘川风华录】",
                     "singer": "我是人",
                     "timeLong": "",
+                    "maxTimeLong": "",
                     playing: false
                 }],
                 socket: socket,
@@ -218,7 +221,8 @@
                 playlists: [
                     "list1"
                 ],
-                playback_progress: 0
+                playback_progress: 0,
+                rangeMax: 1000
             }
         },
         methods: {
@@ -259,8 +263,22 @@
             },
             onRangeValueChanged(event) {
                 this.playback_progress = event.value;
-                // console.log(this.playback_progress)
-                // this.drawBackground(event, "blue", event.value / 100)
+                this.musics.forEach(element => {
+                    if (element.playing) {
+                        this.draw_playback_progress({
+                            "id": element.id,
+                            "percentage": this.playback_progress / this.rangeMax
+                        })
+                        element.timeLong = (this.playback_progress / this.rangeMax) * element.maxTimeLong
+                    }
+                })
+            },
+            onRangeMouseUp(event) {
+                this.socket.emit("web", {Type: "SetPosition", progress: this.playback_progress / this.rangeMax})
+                this.uploadMode = false;
+            },
+            onRangeMouseDown(event) {
+                this.uploadMode = true;
             },
             serverMsg(data) {
                 //console.log(data)
@@ -278,10 +296,14 @@
                         if (!hasBenchmark)
                             this.benchmark_device = ""
                     }
-                    if (data.musics != null)
+                    if (data.musics != null) {
                         this.musics = data.musics
-                    if (data.progress != null)
+                    }
+                    if (data.progress != null) {
                         this.draw_playback_progress(data.progress)
+                        let currents = this.musics.filter(musics => musics.playing)
+                        this.playback_progress = currents.length > 0 ? this.rangeMax * data.progress.percentage : 0
+                    }
                     if (data.playlists != null)
                         this.playlists = data.playlists
                     if (data.list_active != null)
@@ -333,8 +355,9 @@
         },
         created() {
             this.socket.emit("web", {})
+            var core = this
             setInterval(function () {
-                if (!this.uploadMode)
+                if (!core.uploadMode)
                     this.socket.emit("web", {Type: "RequestInformationUpdate"})
             }, 500);
             this.socket.on('web', this.serverMsg);

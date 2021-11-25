@@ -1,10 +1,11 @@
+import random
 import threading
 import time
+from typing import Dict
 
-from flask import Flask, render_template
+from flask import Flask, render_template, render_template_string
 from flask_socketio import SocketIO
 from loguru import logger
-from typing import Dict
 
 from datamodel import *
 from song import Song
@@ -24,11 +25,13 @@ class Server:
         self.list_information = {}
         self.timeout = 60
         self.offline_threshold = 20
-        self.song = None
+        # self.song: Song = None
+        self.music_continue = False
         self.benchmark_device = None
         self.list_clients: Dict[str, ClientInfoDataset] = {}
         self.isRun = True
         self.updateFrequency = 1
+        self.playMode = PlayMode.ListLoop
         self._thread_information_update = threading.Thread(target=self.thread_information_update)
         self._thread_information_update.start()
 
@@ -36,16 +39,14 @@ class Server:
         self.socketio.run(self.app, host=self.host, port=self.port)
 
     def load_music(self, path_dataset):
-        self.song = Song(path_dataset)
+        self.song: Song = Song(path_dataset)
 
     def play_music(self, index=None):
-        if index is None:  # self.list_clients[self.benchmark_device].playStatus == PlayStatus.Play and
+        if index is None:
             self.issueCommand(Command.Pause)
         else:
-            if index is not None:
-                self.song.setcurrent(index)
-            if self.list_clients[self.benchmark_device].benchmarkPlayingPosition == 0:
-                self.issueCommand(Command.Load)
+            self.song.setcurrent(index)
+            self.issueCommand(Command.Load)
             threading.Thread(target=self.waiting_thread).start()
 
     def waiting_thread(self, directStart=False):
@@ -55,6 +56,7 @@ class Server:
             if False not in result or directStart:
                 self.issueCommand(Command.Play)
                 logger.info(f"全部设备加载完毕, 开始播放" if not directStart else "继续播放")
+                self.music_continue = False
                 break
             time.sleep(0.1)
 
@@ -64,9 +66,28 @@ class Server:
                 device["live"] = False
                 logger.info("Device {} offline".format(device["Identity"]))
 
-    def issueCommand(self, command, identity="Broadcast"):
+    def play_status_check(self):
+        if self.list_clients[self.benchmark_device].playStatus == PlayStatus.End and not self.music_continue:
+            current_id = self.song.current_song
+            length_list = len(self.song.get_current_playlist())
+            next_song = -1
+            if self.playMode == PlayMode.ListLoop:
+                next_song = current_id + 1 if current_id + 1 < length_list else 0
+            if self.playMode == PlayMode.Random:
+                next_song = random.randint(0, length_list - 1)
+            if self.playMode == PlayMode.Single:
+                next_song = current_id
+            if self.playMode == PlayMode.List:
+                next_song = current_id + 1 if current_id + 1 < length_list else -1
+
+            if 0 <= next_song < length_list:
+                self.play_music(next_song)
+                self.music_continue = True
+
+    def issueCommand(self, command, identity="Broadcast", benchmarkPlayingPosition=None):
         """
         下发指令
+        :param benchmarkPlayingPosition:
         :param command:
         :param identity:
         :return:
@@ -92,24 +113,27 @@ class Server:
             self.sendDataUpdate(identity, command)
         if command == Command.InformationCollection:
             self.sendDataUpdate(identity, command)
+        if command == Command.SetPosition:
+            self.sendDataUpdate(identity, command, benchmarkPlayingPosition)
 
         # 指令位复位
 
-    def sendDataUpdate(self, identity: str, command=Command.Null, **kwargs):
+    def sendDataUpdate(self, identity: str, command=Command.Null, benchmarkPlayingPosition=None, **kwargs):
         """
         发送数据更新
+        :param benchmarkPlayingPosition:
         :param command:
         :param identity:
         :param kwargs:
         :return:
         """
-        data = {"Identity": identity, "JData": self.generateData(command)}
+        data = {"Identity": identity, "JData": self.generateData(command, benchmarkPlayingPosition)}
         for key, value in kwargs.items():
             if key in ["Except"]:
                 data[key] = value
         self.socketio.emit("Information", data)
 
-    def generateData(self, command):
+    def generateData(self, command, benchmarkPlayingPosition=None):
         """
         生成要传输到播放设备的数据集
         :return:
@@ -120,6 +144,9 @@ class Server:
         data.youtubeId = self.song.current()["youtube"].video_id
         data.playStatus = self.list_clients[self.benchmark_device].playStatus
         data.benchmarkDevice = self.benchmark_device
+        if benchmarkPlayingPosition is not None:
+            self.list_clients[self.benchmark_device].benchmarkTimestamp = time.time()
+            self.list_clients[self.benchmark_device].benchmarkPlayingPosition = benchmarkPlayingPosition
         data.benchmarkTimestamp = self.list_clients[self.benchmark_device].benchmarkTimestamp
         data.benchmarkPlayingPosition = self.list_clients[self.benchmark_device].benchmarkPlayingPosition
         return data.json()
@@ -134,6 +161,8 @@ class Server:
                 json_str = data["JData"]
                 self.list_clients[identity].update(json_str)
                 self.list_clients[identity].last_update_time = time.time()
+                if identity == self.benchmark_device:
+                    self.play_status_check()
 
     def register(self, data):
         identity = data["Identity"]
@@ -166,6 +195,9 @@ class Server:
                 self.issueCommand(Command.Pause)
             if data["Type"] == "Redress":
                 self.issueCommand(Command.Redress)
+            if data["Type"] == "SetPosition":
+                self.issueCommand(Command.SetPosition,
+                                  benchmarkPlayingPosition=data["progress"] * self.song.current()['length'])
 
     def page_update(self):
         devices = []
@@ -202,17 +234,26 @@ class Server:
                                        "id": self.song.current_song,
                                        "percentage":
                                            self.list_clients[self.benchmark_device].benchmarkPlayingPosition /
-                                           self.song.current()['length']}})
+                                           self.song.current()['length'] if self.benchmark_device is not None else 0}})
 
-        music = []
+        musics = []
         current_playlist = self.song.get_current_playlist()
         current_song_index = self.song.current_song
         for i in range(len(current_playlist)):
-            music.append({"id": i, "name": current_playlist[i]['title'], "singer": current_playlist[i]['author'],
-                          "timeLong": self.list_clients[
-                              self.benchmark_device].benchmarkPlayingPosition if i == current_song_index else
-                          current_playlist[i]['length'], "playing": (i == current_song_index)})
-        self.socketio.emit("web", {"Type": "InformationUpdate", "musics": music})
+            music = {"id": i, "name": current_playlist[i]['title'],
+                     "singer": current_playlist[i]['author'],
+                     "playing": (i == current_song_index),
+                     "maxTimeLong": current_playlist[i]['length']}
+            if self.benchmark_device is not None and i == current_song_index:
+                if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Play or \
+                        self.list_clients[self.benchmark_device].playStatus == PlayStatus.Pause:
+                    music["timeLong"] = self.list_clients[self.benchmark_device].benchmarkPlayingPosition
+                else:
+                    music["timeLong"] = current_playlist[i]['length']
+            else:
+                music["timeLong"] = current_playlist[i]['length']
+            musics.append(music)
+        self.socketio.emit("web", {"Type": "InformationUpdate", "musics": musics})
 
         self.socketio.emit("web",
                            {"Type": "InformationUpdate",
@@ -225,11 +266,17 @@ class Server:
     def thread_information_update(self):
         while self.isRun:
             if len(self.list_clients.keys()) > 0 and self.benchmark_device is not None:
+                # for key in self.list_clients.keys():
+                #     if time.time() - self.list_clients[key].last_update_time >= self.offline_threshold:
+                #         del self.list_clients[key]
+                #         logger.info(f"Device {key} is offline")
+
                 self.issueCommand(Command.InformationCollection)
             time.sleep(self.updateFrequency)
 
     def index(self):
-        return render_template('testIndex.html')
+        html = str(file_read('templates/testIndex.html'))
+        return html
 
     @staticmethod
     def secondsToString(seconds):
@@ -238,13 +285,13 @@ class Server:
         return "%d:%02d:%02d" % (h, m, s)
 
     def bind(self):
-        self.app = Flask(__name__)
+        self.app = Flask(__name__, static_folder="templates")
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
 
         @self.app.route('/')
         @self.app.route('/index')
         def index():
-            self.index()
+            return self.index()
 
         @self.socketio.on("web")
         def web(data):

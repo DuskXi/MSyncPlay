@@ -208,7 +208,7 @@ class Song:
     def get_current_playlist(self):
         return self.playlists[self.current_playlist]
 
-    def current(self):
+    def current(self) -> dict:
         return self.get_current_playlist()[self.current_song]
 
     def next(self):

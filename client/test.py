@@ -45,12 +45,13 @@ def play(path):
                          f"\nstream.get_input_latency(): {stream.get_input_latency()}"
                          f"\nstream.get_read_available(): {stream.get_read_available()}")
 
-
 def test():
     print()
     # play(r"D:\projects\playTogather\client\cache/bcpgQOuKuMY.m4a")
-    # parallelDownload = ParallelDownload(maxThread=1000)
+    parallelDownload = ParallelDownload(maxThread=1000)
     # parallelDownload.download("https://lon-gb-ping.vultr.com/vultr.com.1000MB.bin", "vultr.com.1000MB.bin")
+    parallelDownload.download("https://r1---sn-aigl6nl7.googlevideo.com/videoplayback?expire=1637835109&ei=BQ2fYYbpOJGEp-oPkoapwAw&ip=2a05%3Af480%3A1000%3A76f%3A5400%3A3ff%3Afead%3A73a0&id=o-AMDJGThJLkavva6LS9ILvchbHmkxlaRWgWSVFwArcxqm&itag=140&source=youtube&requiressl=yes&mh=UV&mm=31%2C26&mn=sn-aigl6nl7%2Csn-5hnekn7s&ms=au%2Conr&mv=m&mvi=1&pl=53&initcwndbps=1928750&vprv=1&mime=audio%2Fmp4&gir=yes&clen=3305040&dur=204.173&lmt=1631366743272592&mt=1637813091&fvip=1&keepalive=yes&fexp=24001373%2C24007246&c=ANDROID&txp=5432434&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cvprv%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&sig=AOq0QJ8wRAIgMCcuClmKO7iggoIe9tyjTIuVO4Dn8O0PgdUBmMvsPPICIFhO2HCVwwbPRstrQJRpU-GImOZYYF_6wN_zOHz2B7xI&lsparams=mh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AG3C_xAwRQIgVzRFzALVG_sLSu72_DqUOjJXKb4w1fokVbmOc46qOxICIQCZAYDkyxJFkhmTVTmk_XxXiaXr3Fgp6DuJpe5EG3PmhA%3D%3D",
+                              "test.m4a")
     # play(r"D:\projects\playTogather\client\cache\JhewXi1UeqQ.m4a")
     # playLayer = PlayLayer(
     #     "https://r2---sn-5n3-n1ql.googlevideo.com/videoplayback?expire=1637103510&ei=NuOTYZHiJfqoxN8P-5-QwAQ&ip=31.205.236.29&id=o-AIrJzfVFpLchikfEvkPSYHwwOpvDmx5oQKvLbUjvxMyb&itag=140&source=youtube&requiressl=yes&mh=kw&mm=31%2C29&mn=sn-5n3-n1ql%2Csn-aigzrnld&ms=au%2Crdu&mv=m&mvi=2&pcm2cms=yes&pl=19&initcwndbps=2156250&vprv=1&mime=audio%2Fmp4&gir=yes&clen=3896046&dur=240.674&lmt=1613798414511546&mt=1637081588&fvip=3&keepalive=yes&fexp=24001373%2C24007246&c=ANDROID&txp=6311222&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cvprv%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&sig=AOq0QJ8wRQIgXwwCxGSugwdxfrC661NYCz_8X3_EqO0sV4jlzVozDkcCIQDjTG3LhlWbkD7zofv4mDOrGwqVCwn5k1E1Ez5JRugDgA%3D%3D&lsparams=mh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpcm2cms%2Cpl%2Cinitcwndbps&lsig=AG3C_xAwRAIgW2218DT_KDsHs8W8M7HjJ5Mr3D8LF3yLnCofjnQOelYCICxeF0UIgqh5ik7MbrEyIpWfHl50_9v-G7tB3O6c_u5j")
@@ -63,10 +64,10 @@ def test():
     # playLayer.stop()
     # time.sleep(1000)
     # result = JModel.to_object({"testNumber": 0, "testClass": {"name": 123}}, JModel.TestObject)
-    result = datamodel.DataModel(json='{"playStatus":"play"}')
-    print(result)
-    changed = result.update('{"playStatus":"pause", "benchmarkDevice":"win", "benchmarkTimestamp": 123}')
-    print(result)
+    # result = datamodel.DataModel(json='{"playStatus":"play"}')
+    # print(result)
+    # changed = result.update('{"playStatus":"pause", "benchmarkDevice":"win", "benchmarkTimestamp": 123}')
+    # print(result)
 
 
 if __name__ == '__main__':

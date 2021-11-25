@@ -43,6 +43,7 @@ class PlayStatus(Enum):
     Play = "play"
     Pause = "pause"
     Load = "load"
+    End = "end"
     Unknown = "unknown"
 
 
@@ -52,6 +53,14 @@ class Command(Enum):
     Pause = "pause"
     Stop = "stop"
     Redress = "redress"
+    SetPosition = "setPosition"
     ReBuildUUID = "rebuild_uuid"
     InformationCollection = "information_collection"
     Null = "null"
+
+
+class PlayMode(Enum):
+    Random = "random" # 随机播放
+    Single = "single" # 单曲循环
+    List = "list" # 列表播放
+    ListLoop = "list_loop" # 列表循环

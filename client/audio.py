@@ -15,6 +15,7 @@ from numba import jit
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from pydub import AudioSegment
 from paralleldownload import ParallelDownload
+from pathlib import Path
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -42,26 +43,21 @@ class Audio:
         self._load(url, video_id)
         return self
 
-    @staticmethod
-    def isFileExist(path):
-        return os.path.isfile(path)
-
     def _load(self, url, video_id):
-        if not os.path.exists(self.cache_path):
+        if not Path(self.cache_path).is_dir():
             os.mkdir(self.cache_path)
         path_json = os.path.join(self.cache_path, "cache.json")
-        if not os.path.exists(path_json):
+        if not Path(path_json).is_file():
             file_write(path_json, json.dumps([]))
         caches = json.loads(file_read(path_json))
         isInCache = False
         for cache in caches:
             video_id_cache = cache["video_id"]
-            extension_name = cache["extension_name"]
-            if video_id_cache == video_id:
+            if video_id_cache == video_id and Path(os.path.join(self.cache_path, f"{video_id_cache}.m4a")).is_file():
                 isInCache = True
         if not isInCache:
-            parallelDownload = ParallelDownload(maxThread=100)
-            parallelDownload.download(url, os.path.join(self.cache_path, f"{video_id}.m4a"))
+            parallelDownload = ParallelDownload(maxThread=1000)
+            parallelDownload.download(url, os.path.join(self.cache_path, f"{video_id}.m4a"), self.loop)
             caches.append({"video_id": video_id, "extension_name": "m4a"})
         file_write(path_json, json.dumps(caches))
         self.playerLayer.load_source(os.path.join(self.cache_path, f"{video_id}.m4a"))
@@ -121,12 +117,20 @@ class PlayLayer:
         self.duration_frame = sound.frame_count()
 
     def thread_play(self):
+        self.is_play_ended = False
         logger.info(f"音频[{os.path.split(self.file_path)[-1]}]开始播放")
         if self.enable_benchmark:
             self.audio_frame += math.floor((time.time() - self.benchmark_time) / self.audio_frame_step)
             self.enable_benchmark = False
         while self.audio_frame < self.duration_frame and self.isRun:  # 循环，直到时间大于结束
-            self.stream.write(self.source_array[self.audio_frame].tostring())
+            if self.enable_benchmark:
+                self.audio_frame += math.floor((time.time() - self.benchmark_time) / self.audio_frame_step)
+                self.enable_benchmark = False
+            try:
+                self.stream.write(self.source_array[self.audio_frame].tostring())
+            except:
+                logger.error("音频播放出错")
+                break
             self.audio_frame += 1
         if not self.isPause:
             self.p.terminate()  # 关闭
@@ -135,9 +139,23 @@ class PlayLayer:
         else:
             logger.info(f"音频[{os.path.split(self.file_path)[-1]}]暂停播放")
             self.isPause = False
+        self.is_play_ended = True
 
     def set_position(self, seconds: float):
         self.audio_frame = math.floor(seconds / self.audio_frame_step)
+
+    def set_position_with_benchmark_customize(self, seconds: float, benchmark_time: float):
+        """
+        警告，调用此方法后必须立刻启动播放器，不然此方法不仅没有实际意义还将会导致下一次播放失败
+        Warning, the player must be started immediately after calling this method,
+         otherwise this method will not only have no practical meaning, but will also cause the next playback to fail
+        :param benchmark_time:
+        :param seconds:
+        :return:
+        """
+        self.benchmark_time = benchmark_time
+        self.set_position(seconds)
+        self.enable_benchmark = True
 
     def set_position_with_benchmark(self, seconds: float):
         """
@@ -147,9 +165,9 @@ class PlayLayer:
         :param seconds:
         :return:
         """
-        self.enable_benchmark = True
         self.benchmark_time = time.time()
         self.set_position(seconds)
+        self.enable_benchmark = True
 
     def get_position(self):
         return self.audio_frame * self.audio_frame_step
@@ -185,3 +203,4 @@ class PlayLayer:
     def reset(self):
         if self.is_play_ended:
             self._init_player()
+            self.is_play_ended = False

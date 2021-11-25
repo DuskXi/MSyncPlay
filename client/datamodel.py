@@ -34,8 +34,6 @@ class ClientInfoDataset(JObject):
         self.delay: float = 0.0
         self.difference: float = 0.0
         # 本地参数
-        self.last_update_time: float = 0.0
-        self.enabled: bool = True
         super().__init__(**kwargs)
 
 
@@ -43,6 +41,7 @@ class PlayStatus(Enum):
     Play = "play"
     Pause = "pause"
     Load = "load"
+    End = "end"
     Unknown = "unknown"
 
 
@@ -51,6 +50,7 @@ class Command(Enum):
     Load = "load"
     Pause = "pause"
     Stop = "stop"
+    SetPosition = "setPosition"
     Redress = "redress"
     ReBuildUUID = "rebuild_uuid"
     InformationCollection = "information_collection"
