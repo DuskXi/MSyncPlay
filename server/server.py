@@ -205,6 +205,8 @@ class Server:
                 self.song.current_playlist = data["playlist"]
                 if data["playlist"] not in self.song.list_loaded:
                     self.song.start_load_music_list(data["playlist"])
+                if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Playing:
+                    self.issueCommand(Command.Stop)
 
     def page_update(self):
         devices = []
