@@ -1,21 +1,18 @@
 import json
 import math
 import os
+import ssl
 import threading
 import time
+from pathlib import Path
 
 import numpy as np
 import pyaudio
 import wget
-import ssl
-import vlc
 from loguru import logger
-from moviepy.audio.io.AudioFileClip import AudioFileClip
-from numba import jit
-from moviepy.video.io.VideoFileClip import VideoFileClip
 from pydub import AudioSegment
+
 from paralleldownload import ParallelDownload
-from pathlib import Path
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
