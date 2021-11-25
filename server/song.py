@@ -265,14 +265,17 @@ class Song:
         self.playback_progress_percentage = 0
         self.benchmark_timestamp = 0
 
-    class PlaylistNameExistError(Exception):
-        def __init__(self, playlist_name):
-            super().__init__(f"播放列表[{playlist_name}]已存在")
 
-    class PlaylistNameNotExistError(Exception):
-        def __init__(self, playlist_name):
-            super().__init__(f"播放列表[{playlist_name}]不存在")
+class PlaylistNameExistError(Exception):
+    def __init__(self, playlist_name):
+        super().__init__(f"播放列表[{playlist_name}]已存在")
 
-    class SongIndexNotExistError(Exception):
-        def __init__(self, song_index):
-            super().__init__(f"歌曲索引[{song_index}]不存在")
+
+class PlaylistNameNotExistError(Exception):
+    def __init__(self, playlist_name):
+        super().__init__(f"播放列表[{playlist_name}]不存在")
+
+
+class SongIndexNotExistError(Exception):
+    def __init__(self, song_index):
+        super().__init__(f"歌曲索引[{song_index}]不存在")
