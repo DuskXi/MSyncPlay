@@ -294,6 +294,10 @@ class Server:
         html = str(file_read('templates/index.html'))
         return html
 
+    def page_list(self):
+        html = str(file_read('templates/list.html'))
+        return html
+
     @staticmethod
     def secondsToString(seconds):
         m, s = divmod(seconds, 60)
@@ -306,8 +310,13 @@ class Server:
 
         @self.app.route('/')
         @self.app.route('/index')
+        @self.app.route('/Index')
         def index():
             return self.index()
+
+        @self.app.route('/list')
+        def page_list():
+            return self.page_list()
 
         @self.socketio.on("web")
         def web(data):
