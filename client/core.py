@@ -89,6 +89,8 @@ class Core:
                 # TODO: 这边也是
         if command == Command.Stop:
             self.audio.playerLayer.stop()
+            self.audio.playerLayer.reset()
+            self.audio.playerLayer.audio_frame = 0
         if command == Command.Redress:
             self.redress_music(self.kernelInfo.benchmarkPlayingPosition, self.kernelInfo.benchmarkTimestamp)
         if command == Command.InformationCollection:
