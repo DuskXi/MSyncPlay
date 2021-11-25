@@ -5,7 +5,6 @@ import time
 
 import progressbar
 import requests
-from numba import jit
 
 
 class ParallelDownload:
