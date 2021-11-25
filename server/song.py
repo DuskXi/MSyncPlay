@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import threading
 
 from loguru import logger
 from pytube import YouTube
@@ -34,6 +35,11 @@ class Song:
         self.playback_progress_percentage = 0
         self.benchmark_timestamp = 0
         self.circle_mod = True
+        self.loading_progress = 0
+        self.isLoading = False
+        self.num_loading_task_music = 0
+        self.loading_thread = None
+        self.list_loaded = []
 
         status = self._checkDataset()
         if status == 1:
@@ -50,6 +56,35 @@ class Song:
             exit(0)
 
         self._read_music_list()
+        self.start_load_music_list(self.current_playlist)
+
+    def _load_music_list(self, name_music_list):
+        data = json.loads(file_read(self.path_dataset))
+        music_lists = data["music_list"]
+        for playlist in music_lists:
+            list_name = playlist['name']
+            if list_name == name_music_list:
+                self.isLoading = True
+                list_songs = playlist['songs']
+                self.num_loading_task_music = len(list_songs)
+                self.loading_progress = 0
+                self.playlists[list_name] = [{} for x in range(len(list_songs))]
+                logger.debug(f"  List '{list_name}' {{{len(list_songs)}}} song")
+                for song in list_songs:
+                    index = song['id']
+                    url = song['url']
+                    music = self.load_music(url)
+                    self.playlists[list_name][index] = music
+                    logger.debug(
+                        f"    Music: [{music['title']}] Length: [{music['length']}s] Author: [{music['author']}]")
+                    self.loading_progress += 1
+                self.list_loaded.append(list_name)
+                self.isLoading = False
+                break
+
+    def start_load_music_list(self, name_music_list):
+        self.loading_thread = threading.Thread(target=self._load_music_list, args=(name_music_list,))
+        self.loading_thread.start()
 
     def _read_music_list(self):
         data = json.loads(file_read(self.path_dataset))
@@ -61,12 +96,12 @@ class Song:
             list_song = playlist['songs']
             self.playlists[list_name] = [{} for x in range(len(list_song))]
             logger.debug(f"  List '{list_name}' {{{len(list_song)}}} song")
-            for song in list_song:
-                index = song['id']
-                url = song['url']
-                music = self.load_music(url)
-                self.playlists[list_name][index] = music
-                logger.debug(f"    Music: [{music['title']}] Length: [{music['length']}s] Author: [{music['author']}]")
+            # for song in list_song:
+            #     index = song['id']
+            #     url = song['url']
+            #     music = self.load_music(url)
+            #     self.playlists[list_name][index] = music
+            #     logger.debug(f"    Music: [{music['title']}] Length: [{music['length']}s] Author: [{music['author']}]")
         logger.info(f"播放数据集读入, Path:[{self.path_dataset}] {getFileSize(self.path_dataset)} MB")
         logger.info(f"    一共{len(self.playlists.keys())}个播放列表")
 
@@ -144,7 +179,8 @@ class Song:
             "audio_link": yt.streams.get_audio_only().url,  # list_audios.url,
             "title": list_audios.title,
             "author": yt.author,
-            "length": yt.length
+            "length": yt.length,
+            "thumbnail_url": yt.thumbnail_url
         }
 
     def add_song(self, name_playlist, url):
@@ -229,17 +265,14 @@ class Song:
         self.playback_progress_percentage = 0
         self.benchmark_timestamp = 0
 
+    class PlaylistNameExistError(Exception):
+        def __init__(self, playlist_name):
+            super().__init__(f"播放列表[{playlist_name}]已存在")
 
-class PlaylistNameExistError(Exception):
-    def __init__(self, playlist_name):
-        super().__init__(f"播放列表[{playlist_name}]已存在")
+    class PlaylistNameNotExistError(Exception):
+        def __init__(self, playlist_name):
+            super().__init__(f"播放列表[{playlist_name}]不存在")
 
-
-class PlaylistNameNotExistError(Exception):
-    def __init__(self, playlist_name):
-        super().__init__(f"播放列表[{playlist_name}]不存在")
-
-
-class SongIndexNotExistError(Exception):
-    def __init__(self, song_index):
-        super().__init__(f"歌曲索引[{song_index}]不存在")
+    class SongIndexNotExistError(Exception):
+        def __init__(self, song_index):
+            super().__init__(f"歌曲索引[{song_index}]不存在")

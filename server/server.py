@@ -198,6 +198,13 @@ class Server:
             if data["Type"] == "SetPosition":
                 self.issueCommand(Command.SetPosition,
                                   benchmarkPlayingPosition=data["progress"] * self.song.current()['length'])
+            if data["Type"] == "SetPlayMode":
+                self.playMode = PlayMode(data["mode"])
+                logger.info("PlayMode: " + str(self.playMode))
+            if data["Type"] == "ChangePlayList":
+                self.song.current_playlist = data["playlist"]
+                if data["playlist"] not in self.song.list_loaded:
+                    self.song.start_load_music_list(data["playlist"])
 
     def page_update(self):
         devices = []
@@ -240,19 +247,21 @@ class Server:
         current_playlist = self.song.get_current_playlist()
         current_song_index = self.song.current_song
         for i in range(len(current_playlist)):
-            music = {"id": i, "name": current_playlist[i]['title'],
-                     "singer": current_playlist[i]['author'],
-                     "playing": (i == current_song_index),
-                     "maxTimeLong": current_playlist[i]['length']}
-            if self.benchmark_device is not None and i == current_song_index:
-                if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Play or \
-                        self.list_clients[self.benchmark_device].playStatus == PlayStatus.Pause:
-                    music["timeLong"] = self.list_clients[self.benchmark_device].benchmarkPlayingPosition
+            if len(current_playlist[i]) > 0:
+                music = {"id": i, "name": current_playlist[i]['title'],
+                         "singer": current_playlist[i]['author'],
+                         "playing": (i == current_song_index),
+                         "maxTimeLong": current_playlist[i]['length'],
+                         "img": current_playlist[i]['thumbnail_url']}
+                if self.benchmark_device is not None and i == current_song_index:
+                    if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Play or \
+                            self.list_clients[self.benchmark_device].playStatus == PlayStatus.Pause:
+                        music["timeLong"] = self.list_clients[self.benchmark_device].benchmarkPlayingPosition
+                    else:
+                        music["timeLong"] = current_playlist[i]['length']
                 else:
                     music["timeLong"] = current_playlist[i]['length']
-            else:
-                music["timeLong"] = current_playlist[i]['length']
-            musics.append(music)
+                musics.append(music)
         self.socketio.emit("web", {"Type": "InformationUpdate", "musics": musics})
 
         self.socketio.emit("web",
@@ -261,7 +270,12 @@ class Server:
                             "list_active": self.song.current_playlist,
                             "play_status": self.list_clients[self.benchmark_device].playStatus.value
                             if self.benchmark_device is not None
-                            else False})
+                            else False,
+                            "play_mode": self.playMode.value,
+                            "loading": self.song.isLoading,
+                            "loading_progress": round(
+                                self.song.loading_progress / self.song.num_loading_task_music * 100, 2)
+                            if self.song.num_loading_task_music != 0 else 0})
 
     def thread_information_update(self):
         while self.isRun:
@@ -275,7 +289,7 @@ class Server:
             time.sleep(self.updateFrequency)
 
     def index(self):
-        html = str(file_read('templates/testIndex.html'))
+        html = str(file_read('templates/index.html'))
         return html
 
     @staticmethod
