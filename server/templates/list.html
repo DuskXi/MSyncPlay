@@ -298,20 +298,11 @@
     const Counter = {
         data() {
             return {
-                playlists: ["testList"],
-                activated_list: "testList",
+                playlists: [],
+                activated_list: "",
                 listLoading: false,
                 loading_progress: 50,
-                musics: [{
-                    id: 0,
-                    name: "【双笙 & 三无Marblue】绮云泽",
-                    singer: "双笙子 (Official)",
-                    playing: true,
-                    maxTimeLong: 242,
-                    img: "https://i.ytimg.com/vi/bcpgQOuKuMY/sddefault.jpg",
-                    timeLong: 242,
-                    checked: false
-                }],
+                musics: [],
                 uploadMode: false,
                 socket: socket,
                 addUrl: "",
