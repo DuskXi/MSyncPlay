@@ -33,11 +33,20 @@
     <title>Hello, world!</title>
 
     <style>
+        body {
+            background: url('templates/87696292_p0.png') no-repeat center fixed;
+            background-size: cover;
+        }
 
+        .mainBody {
+            background-color: rgba(255, 255, 255, 0.4);
+            height: 100VH;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
-<div id="app">
+<div id="app" class="mainBody">
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">MSyncPlay</a>
@@ -294,7 +303,7 @@
 </div>
 
 <script>
-    var socket = io('ws://127.0.0.1:5000');
+    var socket = io();
     const Counter = {
         data() {
             return {

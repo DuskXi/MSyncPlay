@@ -35,6 +35,7 @@ class Core:
     def load_music(self, url, youtube_id):
         start_time = time.time()
         self.audio.load(url, youtube_id)
+        self.localInfo.playStatus = PlayStatus.Load
         logger.info(
             f"歌曲加载完毕, 耗时: {(time.time() - start_time) * 1000} ms [video_id]: {youtube_id}")
 
@@ -65,6 +66,7 @@ class Core:
         :return:
         """
         if command == Command.Load:
+            logger.info(f"开始加载: [{self.kernelInfo.youtubeId}]")
             self.load_music(self.kernelInfo.url, self.kernelInfo.youtubeId)
             self.updateInformation()
         if command == Command.Play:

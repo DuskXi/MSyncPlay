@@ -95,10 +95,11 @@ class PlayLayer:
         self.audio_frame_step = (1 / 44100)
 
     def load_source(self, file_path):
-        self.file_path = file_path
+        self.file_path = ""
         self.audio_frame = 0
-        self._set_audio_source(self.file_path)
+        self._set_audio_source(file_path)
         self._init_player()
+        self.file_path = file_path
 
     def _init_player(self):
         self.p = pyaudio.PyAudio()  # 创建音频播放器
