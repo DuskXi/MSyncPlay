@@ -205,8 +205,31 @@ class Server:
                 self.song.current_playlist = data["playlist"]
                 if data["playlist"] not in self.song.list_loaded:
                     self.song.start_load_music_list(data["playlist"])
-                if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Playing:
-                    self.issueCommand(Command.Stop)
+                if self.benchmark_device is not None:
+                    if self.list_clients[self.benchmark_device].playStatus == PlayStatus.Playing:
+                        self.issueCommand(Command.Stop)
+            if data["Type"] == "GetMusicInfo":
+                result = self.song.load_music(data["Url"])
+                self.socketio.emit("web", {"Type": "InformationUpdate", "newMusic": {
+                    "img": result["thumbnail_url"],
+                    "name": result["title"],
+                    "singer": result["author"]
+                }})
+            if data["Type"] == "SaveChanges":
+                operates = data["operate"]
+                for operate in operates:
+                    if operate["Type"] == "add":
+                        self.song.add_song(self.song.current_playlist, operate["url"])
+                    if operate["Type"] == "moveUp":
+                        self.song.move_up(self.song.current_playlist, operate["id"])
+                    if operate["Type"] == "moveDown":
+                        self.song.move_down(self.song.current_playlist, operate["id"])
+                    if operate["Type"] == "delete":
+                        self.song.remove_song(self.song.current_playlist, operate["id"])
+            if data["Type"] == "NewList":
+                self.song.new_playlist(data["name"])
+            if data["Type"] == "RemoveList":
+                self.song.remove_playlist(data["name"])
 
     def page_update(self):
         devices = []

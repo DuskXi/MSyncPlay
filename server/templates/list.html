@@ -72,8 +72,224 @@
                         <option v-for="playlist in playlists" :value="playlist">{{playlist}}</option>
                     </select>
                 </div>
+                <div class="list-group">
+                    <div class="progress" v-if="listLoading">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" :style="'width: '+ loading_progress +'%;'"
+                             :aria-valuenow="loading_progress"
+                             aria-valuemin="0" aria-valuemax="100">加载歌单中... {{ loading_progress }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="margin-bottom: 18px">
+                    <div class="col-auto me-auto">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary" @click="modalShow()">
+                                添加歌曲
+                            </button>
+                            <button type="button" class="btn btn-primary" @click="showNewListBox()">
+                                新建歌单
+                            </button>
+                            <button type="button" class="btn btn-danger" @click="removeListBox()">
+                                删除歌单
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <a href="#" class="btn btn-danger" @click="showDeleteBox">删除所选</a>
+                            <a href="#" class="btn btn-primary" @click="removeAllChoose">全不选</a>
+                            <a href="#" class="btn btn-success" @click="chooseAll">全选</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-group" id="list_music_groups" :style="listMusicGroupsStyle">
+                    <!--                    :style="listMusicGroupsStyle"-->
+                    <a href="#" class="list-group-item list-group-item-action d-flex gap-3 py-3" aria-current="true"
+                       v-for="music in musics" :id="'music_' + music.id">
+                        <div class="d-flex gap-2 w-100 justify-content-between" @click="music.checked = !music.checked">
+                            <div>
+                                <div class="btn-group-vertical btn-group-sm" style="margin-right:5px">
+                                    <button type="button" class="btn btn-outline-primary" @click="moveUp(music.id)">
+                                        <i class="bi bi-arrow-up"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" @click="moveDown(music.id)">
+                                        <i class="bi bi-arrow-down"></i>
+                                    </button>
+                                </div>
+                                <img :src="music.img" style="width:75px" class="img-thumbnail" alt="...">
+                            </div>
+
+                            <div>
+                                <h5 class="mb-0">{{music.name}}</h5>
+                                <p class="mb-0 opacity-75">发布者: {{music.singer}}</p>
+                            </div>
+
+                            <small class="opacity-50 text-nowrap">
+                                <h5>{{music.id + 1}}</h5>
+                                {{secondsToTimeString(music.timeLong)}}
+                                <input class="form-check-input" type="checkbox"
+                                       v-model="music.checked" checked></small>
+                        </div>
+                    </a>
+                </div>
+                <div class="row" style="margin-top: 18px; " :style="operate.length > 0 ? 'color: red' : 'color: green'">
+                    <div class="col-auto me-auto">
+                        {{ operate.length > 0 ? "未保存...": "已保存..." }}
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <a href="#" class="btn btn-success" @click="saveChanges">保存</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <div class="modal fade" id="exampleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">添加音乐</h5>
+                        <button type="button" class="btn-close" @click="modalHide()"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">Url:</span>
+                            <input type="text" class="form-control" placeholder="https://www.youtube.com/watch?v=..."
+                                   v-model="addUrl" @input="onUrlChange($event.target.value)">
+                        </div>
+                        <div class="row">
+                            <div class="col col-lg-3">
+                                <img :src="imgNewMusic" style="width:75px" :style="newDataForAdd ? '' : 'display:none'"
+                                     class="img-thumbnail" alt="...">
+                            </div>
+                            <div class="col col-lg-9">
+                                <h6 class="mb-0" :style="newDataForAdd ? '' : 'display:none'">{{nameNewMusic}}</h6>
+                                <p class="mb-0 opacity-75" :style="newDataForAdd ? '' : 'display:none'">发布者:
+                                    {{singerNewMusic}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="modalHide()">Close
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="addMusic()">添加歌曲</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="deleteBox" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">删除音乐</h5>
+                        <button type="button" class="btn-close" @click="deleteBoxHide()"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        将会删除以下所有选中的音乐
+                        <div v-for="music in musics">
+                            <div class="row" v-if="music.checked">
+                                <div class="col col-lg-3">
+                                    <img :src="music.img" style="width:75px" class="img-thumbnail" alt="...">
+                                </div>
+                                <div class="col col-lg-9">
+                                    <h6 class="mb-0">{{music.name}}</h6>
+                                    <p class="mb-0 opacity-75">发布者: {{music.singer}}</p>
+                                </div>
+                            </div>
+                        </div>
+                        确定要删除吗:
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="deleteBoxHide()">取消
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="deleteSelected()">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="musicListAddBox" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">从播放清单添加</h5>
+                        <button type="button" class="btn-close" @click="deleteBoxHide()"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="">取消
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="">添加所选</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="newListBox" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">新建播放清单</h5>
+                        <button type="button" class="btn-close" @click="newListBoxHide()"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">名称</label>
+                                <input type="text" class="form-control" :value="newListName"
+                                       @input="onNewListNameChange($event.target.value)">
+                                <div class="form-text" style="color:red">{{newListNameError}}</div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="newListBoxHide">取消
+                        </button>
+                        <button type="button" class="btn btn-primary"
+                                @click="newList"
+                                :disabled="newListNameError == '' && newListName != '' ? false : true">创建
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="modal fade" id="removeListBox" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">移除播放清单</h5>
+                        <button type="button" class="btn-close" @click="removeListBoxHide()"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" v-for="playlist in playlists">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-danger" @click="removeList(playlist)">
+                                移除 {{playlist}}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="removeListBoxHide">关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -81,12 +297,242 @@
     var socket = io('ws://127.0.0.1:5000');
     const Counter = {
         data() {
-            return {}
+            return {
+                playlists: ["testList"],
+                activated_list: "testList",
+                listLoading: false,
+                loading_progress: 50,
+                musics: [{
+                    id: 0,
+                    name: "【双笙 & 三无Marblue】绮云泽",
+                    singer: "双笙子 (Official)",
+                    playing: true,
+                    maxTimeLong: 242,
+                    img: "https://i.ytimg.com/vi/bcpgQOuKuMY/sddefault.jpg",
+                    timeLong: 242,
+                    checked: false
+                }],
+                uploadMode: false,
+                socket: socket,
+                addUrl: "",
+                imgNewMusic: "",
+                nameNewMusic: "",
+                singerNewMusic: "",
+                newDataForAdd: false,
+                operate: [],
+                listMusicGroupsStyle: {},
+                newListName: ""
+            }
         },
-        methods: {},
+        methods: {
+            serverMsg(data) {
+                if (data.musics != null) {
+                    for (let i = 0; i < data.musics.length; i++) {
+                        data.musics[i].checked = i < this.musics.length ? this.musics[i].checked : false;
+                    }
+                    this.musics = data.musics;
+                    this.changeListMusicGroupsStyle();
+                }
+                if (data.playlists != null)
+                    this.playlists = data.playlists
+                if (data.list_active != null)
+                    this.list_active = data.list_active
+                if (data.loading != null)
+                    this.listLoading = data.loading
+                if (data.loading_progress != null)
+                    this.loading_progress = data.loading_progress
+                if (data.newMusic != null) {
+                    this.imgNewMusic = data.newMusic.img;
+                    this.nameNewMusic = data.newMusic.name;
+                    this.singerNewMusic = data.newMusic.singer;
+                    this.newDataForAdd = true;
+                }
+            },
+            changeListMusicGroupsStyle() {
+                let target = document.getElementById("list_music_groups");
+                if (target != null) {
+                    this.listMusicGroupsStyle = "max-height:" +
+                        (window.innerHeight - target.getBoundingClientRect().top - 80) + "px;" +
+                        " overflow-y: auto;"
+                }
+            },
+            onPlayListChanged() {
+                this.socket.emit("web", {Type: "ChangePlayList", playlist: this.list_active})
+            },
+            secondsToTimeString(timestamp) {
+                let minutes = Math.floor(timestamp / 60)
+                let seconds = Math.round(timestamp % 60)
+                if (seconds < 10)
+                    seconds = "0" + seconds
+                return minutes + ":" + seconds
+            },
+            chooseAll() {
+                this.musics.forEach(music => {
+                    if (music.checked)
+                        music.checked = false
+                    else
+                        music.checked = true
+                })
+            },
+            removeAllChoose() {
+                this.musics.forEach(music => {
+                    if (music.checked)
+                        music.checked = false
+                })
+            },
+            showDeleteBox() {
+                $("#deleteBox").modal("show")
+            },
+            deleteBoxHide() {
+                $("#deleteBox").modal("hide")
+            },
+            deleteSelected() {
+                this.musics.forEach(music => {
+                    if (music.checked)
+                        this.operate.push({
+                            Type: "delete",
+                            id: music.id
+                        })
+                })
+                this.deleteBoxHide();
+            },
+            showNewListBox() {
+                $("#newListBox").modal("show")
+            },
+            newListBoxHide() {
+                $("#newListBox").modal("hide")
+            },
+            onNewListNameChange(value) {
+                this.newListName = value
+                if (this.playlists.indexOf(value) != -1)
+                    this.newListNameError = "歌单名已存在"
+                else
+                    this.newListNameError = ""
+            },
+            newList() {
+                this.socket.emit("web", {Type: "NewList", name: this.newListName})
+                this.newListName = "";
+                this.newListBoxHide();
+            },
+            removeListBox() {
+                $("#removeListBox").modal("show")
+            },
+            removeListBoxHide() {
+                $("#removeListBox").modal("hide")
+            },
+            removeList(value) {
+                let result = window.confirm("确认删除: " + value);
+                if (result)
+                    this.socket.emit("web", {Type: "RemoveList", name: value})
+                else
+                    this.removeListBoxHide();
+            },
+            saveChanges() {
+                this.socket.emit("web", {Type: "SaveChanges", operate: this.operate})
+                this.operate = []
+                this.uploadMode = false;
+            },
+            modalShow() {
+                $("#exampleModal").modal("show")
+            },
+            modalHide() {
+                $("#exampleModal").modal("hide")
+                this.newDataForAdd = false;
+                this.addUrl = ""
+            },
+            addMusic() {
+                if (this.checkUrl(this.addUrl)) {
+                    this.uploadMode = true;
+                    this.operate.push({
+                        Type: "add",
+                        url: this.addUrl,
+                        id: this.musics.length
+                    })
+                    this.musics.push({
+                        id: this.musics.length,
+                        name: this.nameNewMusic,
+                        singer: this.singerNewMusic,
+                        playing: false,
+                        maxTimeLong: 0,
+                        img: this.imgNewMusic,
+                        timeLong: 0,
+                        checked: false
+                    })
+                }
+                this.modalHide()
+                this.changeListMusicGroupsStyle();
+            },
+            removeMusic() {
+                this.musics.forEach(music => {
+                    if (music.checked)
+                        this.operate.push({
+                            Type: "remove",
+                            id: music.id
+                        })
+                })
+            },
+            onUrlChange(value) {
+                if (this.checkUrl(this.addUrl))
+                    this.socket.emit("web", {Type: "GetMusicInfo", Url: this.addUrl})
+            },
+            checkUrl(url) {
+                return true;
+            },
+            moveUp(index) {
+                this.uploadMode = true;
+                if (index > 0) {
+                    let temp = this.musics[index - 1];
+                    this.musics[index - 1] = this.musics[index];
+                    this.musics[index - 1].id = index - 1;
+                    this.musics[index] = temp;
+                    this.musics[index].id = index;
+                    this.operate.push({
+                        Type: "moveUp",
+                        id: index
+                    })
+                }
+                this.musics.forEach(music => {
+                    if (music.id == index) {
+                        music.checked = !music.checked;
+                    }
+                })
+                console.log(this.operate);
+            },
+            moveDown(index) {
+                this.uploadMode = true;
+                if (index < this.musics.length - 1) {
+                    let temp = this.musics[index + 1];
+                    this.musics[index + 1] = this.musics[index];
+                    this.musics[index + 1].id = index + 1;
+                    this.musics[index] = temp;
+                    this.musics[index].id = index;
+                    this.operate.push({
+                        Type: "moveDown",
+                        id: index
+                    })
+                }
+                this.musics.forEach(music => {
+                    if (music.id == index) {
+                        music.checked = !music.checked;
+                    }
+                })
+                console.log(this.operate);
+            }
+        },
         created() {
+            this.socket.emit("web", {})
+            var core = this
+            setInterval(function () {
+                if (!core.uploadMode)
+                    this.socket.emit("web", {Type: "RequestInformationUpdate"})
+            }, 1000);
+            this.socket.on('web', this.serverMsg);
         },
         mounted() {
+            var core = this;
+            window.onresize = function () {
+                core.changeListMusicGroupsStyle();
+            }
         }
     }
     Vue.createApp(Counter).mount('#app')

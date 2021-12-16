@@ -94,7 +94,7 @@ class Song:
         for playlist in music_list:
             list_name = playlist['name']
             list_song = playlist['songs']
-            self.playlists[list_name] = [{} for x in range(len(list_song))]
+            self.playlists[list_name] = [{'link': x["url"]} for x in list_song]
             logger.debug(f"  List '{list_name}' {{{len(list_song)}}} song")
             # for song in list_song:
             #     index = song['id']
@@ -105,7 +105,7 @@ class Song:
         logger.info(f"播放数据集读入, Path:[{self.path_dataset}] {getFileSize(self.path_dataset)} MB")
         logger.info(f"    一共{len(self.playlists.keys())}个播放列表")
 
-    def _save_music_list(self):
+    def _save_music_list(self, name_music_lists: list = None):
         music_list = []
         for list_name in self.playlists.keys():
             playlist = []
@@ -216,6 +216,39 @@ class Song:
             return False
         del self.playlists[name_playlist][index]
         logger.debug(f"歌曲[{index}]已从播放清单[{name_playlist}]中删除, 清单内一共{len(self.playlists[name_playlist])}首歌")
+        self._save_music_list()
+        return True
+
+    def move_up(self, name_playlist: str, index: int):
+        if name_playlist not in self.playlists.keys():
+            logger.error(f"播放列表不存在:[{name_playlist}]")
+            raise PlaylistNameNotExistError(name_playlist)
+            return False
+        if index <= 0:
+            logger.error(f"歌曲索引不存在:[{index}]")
+            raise SongIndexNotExistError(index)
+            return False
+        temp = self.playlists[name_playlist][index - 1]
+        self.playlists[name_playlist][index - 1] = self.playlists[name_playlist][index]
+        self.playlists[name_playlist][index] = temp
+        logger.debug(f"歌曲[{index}]已向上移动至[{index - 1}]")
+        self._save_music_list()
+        return True
+
+    def move_down(self, name_playlist: str, index: int):
+        if name_playlist not in self.playlists.keys():
+            logger.error(f"播放列表不存在:[{name_playlist}]")
+            raise PlaylistNameNotExistError(name_playlist)
+            return False
+        if index >= len(self.playlists[name_playlist]):
+            logger.error(f"歌曲索引不存在:[{index}]")
+            raise SongIndexNotExistError(index)
+            return False
+        temp = self.playlists[name_playlist][index + 1]
+        self.playlists[name_playlist][index + 1] = self.playlists[name_playlist][index]
+        self.playlists[name_playlist][index] = temp
+
+        logger.debug(f"歌曲[{index}]已移动至[{index + 1}]")
         self._save_music_list()
         return True
 
