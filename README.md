@@ -2,7 +2,7 @@
 
 一个多设备同步播放软件
 
-总体上已经可以使用
+总体上已经可以使用(有bug，欢迎发issue)
 
 完美同时播放，无论延迟多高
 
@@ -45,7 +45,7 @@ progressbar33==2.4
 
 A multi-device synchronized playback software
 
-Overall already works
+Overall already works(There is a few bugs, welcome to send issues)
 
 Perfect simultaneous playback, no matter how high the delay is
 
