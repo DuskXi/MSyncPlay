@@ -1,4 +1,4 @@
-# MSyncPlay
+# MSyncPlay [![wakatime](https://wakatime.com/badge/github/DuskXi/MSyncPlay.svg)](https://wakatime.com/badge/github/DuskXi/MSyncPlay)
 
 一个多设备同步播放软件
 
